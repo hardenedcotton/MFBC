@@ -1,2 +1,6 @@
-/images
 MFBC.code-workspace
+conv_v1.ipynb
+functions.ipynb
+/images/**
+!/images/**/
+!/images/**/log.txt
