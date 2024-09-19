@@ -1,0 +1,5 @@
+[_4_8_8_8_4_8_10_6_7]x512s673064746
+Epochs: 50 	 Batch Size: 64
+Process took 84m 47.98s
+Accuracy: 69.23076923076923%
+
