@@ -1,6 +1,7 @@
 MFBC.code-workspace
 conv_v1.ipynb
 functions.ipynb
+x.py
 /images/**
 !/images/**/
 !/images/**/log.txt
