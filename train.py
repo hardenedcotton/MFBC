@@ -158,7 +158,7 @@ def result_logger(result, time_str, num_epochs, batch_size, path):
 
     with open(log_path, 'a') as file:
         file.write(log + '\n\n')
-    print(f'Logged {variation} to {log_path}')
+    print(f'Logged:\n{log}\nto {log_path}')
 
 
 def visualize_feature_maps(feature_maps):
@@ -237,6 +237,9 @@ class EntropyImageDataset(Dataset):
     def __len__(self):
         return len(self.image_filenames)
 
+    def get_last_save_location(self):
+        return self.save_location
+
     def save_get_images(self, filename):
         directory_path = os.path.dirname(filename)
         file_name = os.path.basename(filename)
@@ -253,7 +256,7 @@ class EntropyImageDataset(Dataset):
                     kernel = kernel_from_constant(self.kernel, entropy)
                     final_image = quick_convolution(image, kernel, self.resize)
                     final_image.save(f'{self.save_location}/{file_name}')
-                print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
+                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
 
         elif self.do_convolution:
             self.save_location = f'{directory_path}/conv_exports/{self.kernel_ext}x{self.resize}s{self.seed}'
@@ -264,7 +267,7 @@ class EntropyImageDataset(Dataset):
                 with Timer() as t:
                     final_image = convolution(image, self.kernel, self.resize)
                     final_image.save(f'{self.save_location}/{file_name}')
-                print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
+                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
         else:
             final_image = image
             self.save_location = f'{directory_path}/s{self.seed}'

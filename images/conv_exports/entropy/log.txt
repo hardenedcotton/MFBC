@@ -8,3 +8,23 @@ Epochs: 50	Batch Size: 64
 Process took 36m 44.66s
 Accuracy: 68.46153846153847%
 
+[_5_4_1_7_2_11_9_6_12]x512s9871305
+Epochs: 50	Batch Size: 64
+Process took 35m 1.31s
+Accuracy: 82.3076923076923%
+
+[_7_9_6_1_11_1_11_12_6]x512s2145487899
+Epochs: 50	Batch Size: 64
+Process took 35m 20.37s
+Accuracy: 76.15384615384616%
+
+[4_5_7_7_9_9_8_2_9]x512s68388095
+Epochs: 50	Batch Size: 64
+Process took 33m 48.48s
+Accuracy: 70.76923076923077%
+
+[_4_11_11_5_12_10_3_9_2]x512s789168529
+Epochs: 50	Batch Size: 64
+Process took 24m 23.32s
+Accuracy: 80.0%
+
