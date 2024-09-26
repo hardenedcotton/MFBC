@@ -2,7 +2,7 @@ import os
 import random
 import time
 from pprint import pprint
-
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal
@@ -145,20 +145,46 @@ def str_to_kernel(input_str):
     return np.array(input_list, int).reshape((3, 3))
 
 
-def result_logger(result, time_str, num_epochs, batch_size, path):
+def result_logger(result, time_values, num_epochs, batch_size, path):
     split_index = path.rfind('/')
 
     directory_path = path[:split_index]
     variation = path[split_index + 1:]
 
-    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\n{time_str}\n{result}'
-    log_path = f'{directory_path}/log.txt'
-    if not os.path.exists(log_path):
-        open(log_path, 'w').close()
+    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\n Process took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
 
+    log_path = f'{directory_path}/log.txt'
     with open(log_path, 'a') as file:
         file.write(log + '\n\n')
-    print(f'Logged:\n{log}\nto {log_path}')
+
+    log_json = {
+        'epochs': num_epochs,
+        'batch_size': batch_size,
+        'time': {
+            'mins': time_values[0],
+            'secs': time_values[1]},
+        'accuracy': result
+    }
+
+    json_log_path = f'{directory_path}/log.json'
+    if os.path.exists(json_log_path):
+        with open(json_log_path, 'r') as json_file:
+            try:
+                logs = json.load(json_file)
+                if not isinstance(logs, dict):
+                    logs = {}
+            except json.JSONDecodeError:
+                logs = {}
+    else:
+        logs = {}
+
+    logs[variation] = log_json
+
+    with open(json_log_path, 'w') as json_file:
+        json.dump(logs, json_file, indent=2)
+
+    print(f'\nLogged:\n\n{log}\n')
+    print(f'{log_path}\n{json_log_path}\n')
 
 
 def visualize_feature_maps(feature_maps):
@@ -186,10 +212,11 @@ def visualize_feature_maps(feature_maps):
 
 
 class EntropyImageDataset(Dataset):
-    def __init__(self, image_dir, data_count, do_entropy=False, do_convolution=False, resize=None, kernel_size=3, seed=None, transform=None, kernel_override=[]):
+    def __init__(self, image_dir, data_count, do_entropy=False, do_var=False, do_convolution=False, resize=None, kernel_size=3, seed=None, transform=None, kernel_override=[]):
         self.image_dir = image_dir
         self.transform = transform
         self.do_entropy = do_entropy
+        self.do_variance = do_var
         self.do_convolution = do_convolution
         self.resize = resize
         self.kernel_size = kernel_size
@@ -230,9 +257,13 @@ class EntropyImageDataset(Dataset):
         if self.do_entropy:
             print(
                 f'Kernel variation /entropy/{self.kernel_ext}x{resize}s{self.seed} initiated.')
+
+        elif self.do_variance:
+            print(
+                f'Kernel variation /variance/{self.kernel_ext}x{resize}s{self.seed} initiated.')
         elif self.do_convolution:
             print(
-                f'Kernel variation {self.kernel_ext}x{resize}s{self.seed} initiated.')
+                f'Kernel variation /convolution/{self.kernel_ext}x{resize}s{self.seed} initiated.')
 
     def __len__(self):
         return len(self.image_filenames)
@@ -246,7 +277,7 @@ class EntropyImageDataset(Dataset):
         image = im.open(filename)
 
         if self.do_entropy:
-            self.save_location = f'{directory_path}/conv_exports/entropy/{self.kernel_ext}x{self.resize}s{self.seed}'
+            self.save_location = f'{directory_path}/exports/entropy/{self.kernel_ext}x{self.resize}s{self.seed}'
             os.makedirs(self.save_location, exist_ok=True)
             if file_name in os.listdir(self.save_location):
                 final_image = im.open(f'{self.save_location}/{file_name}')
@@ -257,9 +288,21 @@ class EntropyImageDataset(Dataset):
                     final_image = quick_convolution(image, kernel, self.resize)
                     final_image.save(f'{self.save_location}/{file_name}')
                 # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
-
+        elif self.do_variance:
+            self.save_location = f'{directory_path}/exports/variance/{self.kernel_ext}x{self.resize}s{self.seed}'
+            os.makedirs(self.save_location, exist_ok=True)
+            if file_name in os.listdir(self.save_location):
+                final_image = im.open(f'{self.save_location}/{file_name}')
+            else:
+                with Timer() as t:
+                    image_arr = np.array(image)
+                    variance = image_arr.mean()/image_arr.std()
+                    kernel = kernel_from_constant(self.kernel, variance)
+                    final_image = quick_convolution(image, kernel, self.resize)
+                    final_image.save(f'{self.save_location}/{file_name}')
+                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
         elif self.do_convolution:
-            self.save_location = f'{directory_path}/conv_exports/{self.kernel_ext}x{self.resize}s{self.seed}'
+            self.save_location = f'{directory_path}/exports/convolution/{self.kernel_ext}x{self.resize}s{self.seed}'
             os.makedirs(self.save_location, exist_ok=True)
             if file_name in os.listdir(self.save_location):
                 final_image = im.open(f'{self.save_location}/{file_name}')
@@ -292,7 +335,6 @@ class EntropyImageDataset(Dataset):
             return image, 0
 
 # Models
-# USE THIS
 
 
 class CNNModel(nn.Module):
@@ -308,7 +350,6 @@ class CNNModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x, return_feature_maps=False):
-        # Apply convolutions and pooling, storing feature maps
         feature_maps = []
 
         x = F.relu(self.conv1(x))
@@ -331,10 +372,8 @@ class CNNModel(nn.Module):
             feature_maps.append(x)
         x = self.pool(x)
 
-        # Flatten
         x = x.view(-1, 256 * 32 * 32)
 
-        # Fully connected layers
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
@@ -368,9 +407,10 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
                 f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}')
 
     print('Finished Training')
+
     t_string = f'Process took {t.mins}m {t.secs}s'
     print(t_string)
-    return t_string
+    return t.elapsed
 
 
 def test_model(model, test_loader):
@@ -389,9 +429,10 @@ def test_model(model, test_loader):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    result_string = f'Accuracy: {100 * correct / total}%'
+    result = 100 * correct / total
+    result_string = f'Accuracy: {result}%'
     print(result_string)
-    return result_string
+    return result
 
 
 if __name__ == '__main__':
@@ -410,7 +451,8 @@ if __name__ == '__main__':
 
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=data_count,
-                                  do_entropy=True,
+                                  # do_entropy=True,
+                                  do_var=True,
                                   # do_convolution=True,
                                   resize=512,
                                   seed=seed,
@@ -432,6 +474,7 @@ if __name__ == '__main__':
     model = torch.nn.DataParallel(CNNModel(num_classes=4).to('cuda'))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+
 # Exec
     torch.cuda.empty_cache()
     num_epochs = 50

@@ -5,3 +5,4 @@ x.py
 /images/**
 !/images/**/
 !/images/**/log.txt
+!/images/**/log.json

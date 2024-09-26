@@ -11,4 +11,5 @@ if (len(sys.argv) > 1):
     x = int(sys.argv[1])
 
 for i in range(0, x):
+    print(f'\n###########\nRun\n###########\n')
     os.system("py -3.8 train.py")
