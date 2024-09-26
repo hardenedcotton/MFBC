@@ -1,5 +1,0 @@
-s729430295
-Epochs: 50	Batch Size: 64
-Process took 0m 6.91s
-Accuracy: 100.0%
-
