@@ -1,0 +1,10 @@
+s1764671019
+Epochs: 50	Batch Size: 64
+ Process took 36.0m 4.024935722351074s
+Accuracy: 85.38461538461539%
+
+s1068633314
+Epochs: 50	Batch Size: 64
+ Process took 23.0m 31.634871006011963s
+Accuracy: 82.3076923076923%
+
