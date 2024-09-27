@@ -31,18 +31,6 @@ class Timer:
         self.secs = float(f'{self.elapsed[1]:.2f}')
 
 
-def random_kernel(kernel_size=3, seed=None, dim=2):
-    assert kernel_size % 2 == 1, 'Kernel side length must be an odd number.'
-
-    np.random.seed(seed)
-
-    size = np.zeros((kernel_size,)*dim).shape
-
-    kernel = np.random.randint(1, 13, size=size)
-
-    return kernel
-
-
 functions = [
     lambda x: x,  # Placeholder for 0, not used
     lambda x: sin(x),
@@ -57,7 +45,20 @@ functions = [
     lambda x: tanh(x),
     lambda x: exp(-2 * x),
     lambda x: 1 / (1 + exp(-x)),
+    lambda x: 0,
 ]
+
+
+def random_kernel(kernel_size=3, seed=None, dim=2):
+    assert kernel_size % 2 == 1, 'Kernel side length must be an odd number.'
+
+    np.random.seed(seed)
+
+    size = np.zeros((kernel_size,)*dim).shape
+
+    kernel = np.random.randint(1, len(functions), size=size)
+
+    return kernel
 
 
 def convolution(img, kernel, resize=0):
@@ -151,7 +152,7 @@ def result_logger(result, time_values, num_epochs, batch_size, path):
     directory_path = path[:split_index]
     variation = path[split_index + 1:]
 
-    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\n Process took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
+    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
 
     log_path = f'{directory_path}/log.txt'
     with open(log_path, 'a') as file:
@@ -349,27 +350,17 @@ class CNNModel(nn.Module):
         self.fc2 = nn.Linear(512, num_classes)
         self.dropout = nn.Dropout(0.5)
 
-    def forward(self, x, return_feature_maps=False):
-        feature_maps = []
-
+    def forward(self, x):
         x = F.relu(self.conv1(x))
-        if return_feature_maps:
-            feature_maps.append(x)
         x = self.pool(x)
 
         x = F.relu(self.conv2(x))
-        if return_feature_maps:
-            feature_maps.append(x)
         x = self.pool(x)
 
         x = F.relu(self.conv3(x))
-        if return_feature_maps:
-            feature_maps.append(x)
         x = self.pool(x)
 
         x = F.relu(self.conv4(x))
-        if return_feature_maps:
-            feature_maps.append(x)
         x = self.pool(x)
 
         x = x.view(-1, 256 * 32 * 32)
@@ -378,10 +369,7 @@ class CNNModel(nn.Module):
         x = self.dropout(x)
         x = self.fc2(x)
 
-        if return_feature_maps:
-            return x, feature_maps
-        else:
-            return x
+        return x
 # Train / Test Model
 
 
@@ -452,7 +440,7 @@ if __name__ == '__main__':
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=data_count,
                                   # do_entropy=True,
-                                  do_var=True,
+                                  #   do_var=True,
                                   # do_convolution=True,
                                   resize=512,
                                   seed=seed,
@@ -485,3 +473,7 @@ if __name__ == '__main__':
     dataset[0]
     last_save_location = dataset.get_last_save_location()
     result_logger(result, t, num_epochs, batch_size, last_save_location)
+
+
+# TODO try with no filters
+# TODO try with mask
