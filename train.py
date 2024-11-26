@@ -41,7 +41,6 @@ functions = [
     lambda x: exp(-x),
     lambda x: sqrt(0.5 * x),
     lambda x: x ** 2,
-    lambda x: x,
     lambda x: tanh(x),
     lambda x: exp(-2 * x),
     lambda x: 1 / (1 + exp(-x)),
@@ -73,7 +72,7 @@ def convolution(img, kernel, resize=0):
     kernel_size = kernel.shape[0]
     pad_size = kernel_size // 2
 
-    kernel_flat = kernel.flatten()
+    kernel_flat = kernel.flatten().astype(int)
     kernel_results = np.zeros_like(kernel_flat)
 
     func_list = [functions[i] for i in kernel_flat]
@@ -119,7 +118,7 @@ def quick_convolution(img, kernel, resize=0):
 
 
 def kernel_from_constant(kernel, constant):
-    kernel_flat = kernel.flatten()
+    kernel_flat = kernel.flatten().astype(int)
     cons_kernel = np.zeros_like(kernel_flat, float)
     for i in range(kernel_flat.shape[0]):
         cons_kernel[i] = functions[kernel_flat[i]](constant)
@@ -234,7 +233,7 @@ class EntropyImageDataset(Dataset):
         np.random.seed(self.seed)
         print(f'Current seed: {np.random.get_state()[1][0]}')
 
-        if kernel_override:
+        if type(kernel_override) != type(None):
             self.kernel = kernel_override
         else:
             self.kernel = random_kernel(
@@ -338,9 +337,26 @@ class EntropyImageDataset(Dataset):
 # Models
 
 
-class CNNModel(nn.Module):
+class FullyConnectedModel(nn.Module):
     def __init__(self, num_classes):
-        super(CNNModel, self).__init__()
+        super(FullyConnectedModel, self).__init__()
+        self.fc1 = nn.Linear(3 * 512 * 512, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        batch_size = x.size(0)  # Batch size
+        x = x.view(batch_size, -1)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+# old model
+class oldCNNModel(nn.Module):
+    def __init__(self, num_classes):
+        super(oldCNNModel, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
@@ -426,7 +442,7 @@ def test_model(model, test_loader):
 if __name__ == '__main__':
     image_dir = 'images'
     get_class_counts(image_dir)
-    data_count = 0
+    data_count = 3
     batch_size = 64
     seed = None
 
@@ -440,7 +456,7 @@ if __name__ == '__main__':
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=data_count,
                                   # do_entropy=True,
-                                  #   do_var=True,
+                                  do_var=True,
                                   # do_convolution=True,
                                   resize=512,
                                   seed=seed,
@@ -455,11 +471,12 @@ if __name__ == '__main__':
         dataset, [train_size, test_size], generator=torch.Generator().manual_seed(dataset.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size,
-                              num_workers=6, persistent_workers=True, pin_memory=True, shuffle=True)
+                              num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=test_size,
-                             num_workers=6, persistent_workers=True, pin_memory=True, shuffle=False)
+                             num_workers=4, persistent_workers=True, pin_memory=True, shuffle=False)
 
-    model = torch.nn.DataParallel(CNNModel(num_classes=4).to('cuda'))
+    model = torch.nn.DataParallel(
+        FullyConnectedModel(num_classes=4).to('cuda'))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -473,7 +490,3 @@ if __name__ == '__main__':
     dataset[0]
     last_save_location = dataset.get_last_save_location()
     result_logger(result, t, num_epochs, batch_size, last_save_location)
-
-
-# TODO try with no filters
-# TODO try with mask

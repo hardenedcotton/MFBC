@@ -7,3 +7,5 @@ x.py
 !/images/**/
 !/images/**/log.txt
 !/images/**/log.json
+Integer_Optimization_GA.ipynb
+__pycache__
