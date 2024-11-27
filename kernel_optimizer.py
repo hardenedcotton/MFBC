@@ -4,16 +4,23 @@ import datetime
 
 from train import *
 
+# GA constants
 KERNEL_DIM = 9
+POPULATION_SIZE = 5
+GENERATIONS = 10
+MUTATION_RATE = 0.2
+ELITISM = 2  # Keep top 2 kernels
+
+# Convolution constants
+DATA_COUNT = 0
+BATCH_SIZE = 64
+NUM_EPOCHS = 30
+SEED = 5
 
 
 def conv(kernel):
     image_dir = 'images'
     get_class_counts(image_dir)
-    data_count = 0
-    batch_size = 64
-    num_epochs = 30
-    seed = 5
 
     transform = transforms.Compose([
         transforms.Resize((512, 512)),
@@ -23,13 +30,13 @@ def conv(kernel):
     ])
 
     dataset = EntropyImageDataset(image_dir=image_dir,
-                                  data_count=data_count,
+                                  data_count=DATA_COUNT,
                                   kernel_override=kernel,
                                   # do_entropy=True,
                                   do_var=True,
                                   # do_convolution=True,
                                   resize=512,
-                                  seed=seed,
+                                  seed=SEED,
                                   transform=transform)
 
     train_size = int(0.8 * len(dataset))
@@ -40,7 +47,7 @@ def conv(kernel):
     train_dataset, test_dataset = random_split(
         dataset, [train_size, test_size], generator=torch.Generator().manual_seed(dataset.seed))
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size,
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE,
                               #   num_workers=4, persistent_workers=True,
                               pin_memory=True, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=test_size,
@@ -55,12 +62,12 @@ def conv(kernel):
 # Exec
     torch.cuda.empty_cache()
     t = train_model(model, train_loader, criterion,
-                    optimizer, num_epochs=num_epochs)
+                    optimizer, num_epochs=NUM_EPOCHS)
     result = test_model(model, test_loader)
 
     dataset[0]
     last_save_location = dataset.get_last_save_location()
-    result_logger(result, t, num_epochs, batch_size, last_save_location)
+    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, last_save_location)
     return result
 
 
@@ -81,27 +88,22 @@ def crossover_kernel(kernel1, kernel2):
     return np.vstack((kernel1[:crossover_point], kernel2[crossover_point:]))
 
 
-def evaluate_kernel(kernel):
-    """Evaluates the kernel by passing it to the ML code and reading the accuracy."""
-    kernel_str = ','.join(map(str, kernel))
+def evaluate_kernel(kernel, population_number):
+    print(f'Population {population_number}\n')
     try:
         result = conv(kernel)
         return result
     except:
-        print(f"Error during ML evaluation: {e.stderr}")
+        print(f"Error during ML evaluation")
         return 0.0
 
 
-POPULATION_SIZE = 5
-GENERATIONS = 10
-MUTATION_RATE = 0.2
-ELITISM = 2  # Keep top 2 kernels
 all_kernels = []
 
 population = [random_kernel() for _ in range(POPULATION_SIZE)]
 
 for generation in range(GENERATIONS):
-    print(f"Generation {generation}")
+    print(f'\nGeneration {generation}\n')
     fitness = [(kernel, evaluate_kernel(kernel)) for kernel in population]
     fitness.sort(key=lambda x: x[1], reverse=True)
 
@@ -122,5 +124,8 @@ for generation in range(GENERATIONS):
 
 best_kernel, best_accuracy = fitness[0]
 print(f"Optimal Kernel: {best_kernel}, Best Accuracy: {best_accuracy}")
-with open(f'{datetime.date.today().strftime(("%d-%m-%Y"))}.txt') as f:
+
+print(f'All kernels:\n{all_kernels}')
+
+with open(f'{datetime.date.today().strftime(("%d-%m-%Y"))}.txt', 'w+') as f:
     f.write(all_kernels)
