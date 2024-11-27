@@ -303,3 +303,498 @@ Epochs: 30	Batch Size: 64
 Process took 3.0m 5.3205485343933105s
 Accuracy: 76.15384615384616%
 
+[_5_10_5_9_8_2_6_7_4]x512s589049064
+Epochs: 30	Batch Size: 64
+Process took 4.0m 6.90130877494812s
+Accuracy: 68.46153846153847%
+
+[11_6_6_11_11_5_8_2_4]x512s1413314043
+Epochs: 30	Batch Size: 64
+Process took 4.0m 31.455262899398804s
+Accuracy: 68.46153846153847%
+
+[_8_10_11_9_3_11_8_8_10]x512s1024809563
+Epochs: 30	Batch Size: 64
+Process took 4.0m 18.81612539291382s
+Accuracy: 70.0%
+
+[9_2_4_7_6_7_8_3_5]x512s960282604
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.62954878807068s
+Accuracy: 76.15384615384616%
+
+[11_11_10_7_3_11_4_10_6]x512s2027348068
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.96390080451965s
+Accuracy: 74.61538461538461%
+
+[_7_6_1_2_6_4_12_10_12]x512s384271081
+Epochs: 30	Batch Size: 64
+Process took 3.0m 40.0336639881134s
+Accuracy: 73.07692307692308%
+
+[_1_10_9_7_11_10_2_8_7]x512s46231699
+Epochs: 30	Batch Size: 64
+Process took 3.0m 31.852550745010376s
+Accuracy: 67.6923076923077%
+
+[_6_9_10_7_11_10_10_12_4]x512s431244263
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.09934639930725s
+Accuracy: 79.23076923076923%
+
+[_8_2_4_11_10_1_8_2_4]x512s794097323
+Epochs: 30	Batch Size: 64
+Process took 3.0m 28.907400608062744s
+Accuracy: 72.3076923076923%
+
+[6_8_4_6_2_7_2_2_5]x512s963929248
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.93963861465454s
+Accuracy: 75.38461538461539%
+
+[_6_9_10_7_11_10_10_12_4]x512s1591379859
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.40732932090759s
+Accuracy: 74.61538461538461%
+
+[9_2_4_7_6_7_8_3_5]x512s1402538255
+Epochs: 30	Batch Size: 64
+Process took 3.0m 29.49520754814148s
+Accuracy: 76.15384615384616%
+
+[_6_9_10_2_6_4_12_10_12]x512s656719626
+Epochs: 30	Batch Size: 64
+Process took 3.0m 29.885732412338257s
+Accuracy: 43.07692307692308%
+
+[_7_6_2_2_6_4_12_10_12]x512s1279922483
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.64652609825134s
+Accuracy: 59.23076923076923%
+
+[9_2_4_7_6_7_8_3_5]x512s803877746
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.78268313407898s
+Accuracy: 56.15384615384615%
+
+[6_7_4_6_2_7_2_2_5]x512s817435982
+Epochs: 30	Batch Size: 64
+Process took 3.0m 38.22909641265869s
+Accuracy: 68.46153846153847%
+
+[11_11_10_7_3_11_4_10_6]x512s1426998319
+Epochs: 30	Batch Size: 64
+Process took 3.0m 42.78317618370056s
+Accuracy: 65.38461538461539%
+
+[9_2_4_6_6_7_8_3_5]x512s114620085
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.03219556808472s
+Accuracy: 69.23076923076923%
+
+[_6_9_9_7_11_10_10_12_4]x512s1853293889
+Epochs: 30	Batch Size: 64
+Process took 3.0m 39.13710379600525s
+Accuracy: 76.15384615384616%
+
+[11_11_10_7_3_11_8_3_5]x512s531962661
+Epochs: 30	Batch Size: 64
+Process took 3.0m 31.483335256576538s
+Accuracy: 64.61538461538461%
+
+[9_2_4_7_6_7_8_3_5]x512s1396958914
+Epochs: 30	Batch Size: 64
+Process took 3.0m 30.77101993560791s
+Accuracy: 61.53846153846154%
+
+[_6_9_9_7_11_10_10_12_4]x512s1768837809
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.50450325012207s
+Accuracy: 70.76923076923077%
+
+[_6_9_10_7_11_10_2_2_5]x512s531602330
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.79319882392883s
+Accuracy: 77.6923076923077%
+
+[9_2_4_6_6_7_8_3_4]x512s324058200
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.45344638824463s
+Accuracy: 72.3076923076923%
+
+[_9_2_4_7_6_7_10_12_4]x512s1454020515
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.00938844680786s
+Accuracy: 74.61538461538461%
+
+[9_2_4_6_6_7_2_2_5]x512s292252406
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.41012716293335s
+Accuracy: 80.76923076923077%
+
+[_6_9_10_7_11_10_10_12_4]x512s809321667
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.47615957260132s
+Accuracy: 76.92307692307692%
+
+[9_2_4_6_6_7_8_3_5]x512s1556272301
+Epochs: 30	Batch Size: 64
+Process took 3.0m 31.238364934921265s
+Accuracy: 68.46153846153847%
+
+[9_2_4_6_6_7_8_3_4]x512s195383758
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.3245530128479s
+Accuracy: 76.15384615384616%
+
+[6_9_9_6_6_7_8_3_5]x512s1940646477
+Epochs: 30	Batch Size: 64
+Process took 3.0m 29.435553073883057s
+Accuracy: 72.3076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s438240127
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.509119749069214s
+Accuracy: 77.6923076923077%
+
+[_6_9_10_7_11_10_2_2_5]x512s1973855138
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.15269064903259s
+Accuracy: 75.38461538461539%
+
+[_6_9_10_6_6_7_8_3_4]x512s614071045
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.56985116004944s
+Accuracy: 75.38461538461539%
+
+[_9_2_4_7_6_7_10_12_4]x512s226279547
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.978646993637085s
+Accuracy: 76.92307692307692%
+
+[_9_2_4_7_11_10_10_12_4]x512s1722438363
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.28296113014221s
+Accuracy: 73.84615384615384%
+
+[_8_2_4_7_6_7_10_12_4]x512s169528643
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.522737979888916s
+Accuracy: 61.53846153846154%
+
+[_9_2_4_6_6_7_10_12_4]x512s1026769953
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.390602827072144s
+Accuracy: 60.0%
+
+[_6_9_10_7_6_7_10_12_4]x512s1931846910
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.855812549591064s
+Accuracy: 74.61538461538461%
+
+[_6_9_10_7_6_7_10_12_4]x512s1451095892
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.02033281326294s
+Accuracy: 76.92307692307692%
+
+[_9_2_4_7_11_10_10_12_4]x512s94452900
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.7955527305603s
+Accuracy: 70.0%
+
+[9_2_4_6_6_7_2_2_5]x512s1371572305
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.63227319717407s
+Accuracy: 71.53846153846153%
+
+[_9_2_4_7_6_7_10_12_4]x512s1879385442
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.13940954208374s
+Accuracy: 73.07692307692308%
+
+[_8_2_4_7_6_7_10_12_4]x512s165427241
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.483306646347046s
+Accuracy: 66.92307692307692%
+
+[_9_2_4_7_6_7_10_12_4]x512s2077746426
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.818354845047s
+Accuracy: 73.84615384615384%
+
+[10_2_4_6_6_7_2_2_5]x512s1960416732
+Epochs: 30	Batch Size: 64
+Process took 3.0m 38.67015719413757s
+Accuracy: 80.0%
+
+[_6_9_10_7_6_7_10_11_4]x512s1945715550
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.80634331703186s
+Accuracy: 72.3076923076923%
+
+[_6_9_10_6_6_7_2_2_5]x512s1531869967
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.775728940963745s
+Accuracy: 80.76923076923077%
+
+[9_2_4_6_6_7_8_3_4]x512s675649286
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.731894969940186s
+Accuracy: 81.53846153846153%
+
+[_6_9_10_7_6_7_10_12_4]x512s1509721416
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.821857213974s
+Accuracy: 76.15384615384616%
+
+[_6_9_10_6_6_7_8_3_4]x512s1769130200
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.495352029800415s
+Accuracy: 70.0%
+
+[9_2_4_6_6_7_8_3_4]x512s1386005714
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.9803900718689s
+Accuracy: 70.76923076923077%
+
+[_6_9_10_6_6_7_2_2_5]x512s1873730715
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.02720904350281s
+Accuracy: 73.07692307692308%
+
+[_9_2_4_6_6_7_10_12_4]x512s728000648
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.91586375236511s
+Accuracy: 70.76923076923077%
+
+[10_2_4_7_6_7_10_12_4]x512s63473924
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.76448941230774s
+Accuracy: 70.0%
+
+[10_2_4_7_6_7_10_12_4]x512s279422485
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.83883309364319s
+Accuracy: 72.3076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s1441905963
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.34357452392578s
+Accuracy: 81.53846153846153%
+
+[10_2_4_6_6_7_8_3_4]x512s70600826
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.26699352264404s
+Accuracy: 65.38461538461539%
+
+[10_2_5_6_6_7_2_2_5]x512s357066663
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.6949622631073s
+Accuracy: 76.92307692307692%
+
+[9_2_4_6_6_7_2_2_5]x512s1926936007
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.83830785751343s
+Accuracy: 80.76923076923077%
+
+[_6_9_11_6_6_7_2_2_5]x512s817967760
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.41311740875244s
+Accuracy: 77.6923076923077%
+
+[9_2_4_6_6_7_2_2_5]x512s961810845
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.827041149139404s
+Accuracy: 73.07692307692308%
+
+[9_2_4_6_6_7_2_2_5]x512s560090992
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.123839378356934s
+Accuracy: 77.6923076923077%
+
+[9_2_4_6_6_8_2_2_5]x512s1024598451
+Epochs: 30	Batch Size: 64
+Process took 3.0m 33.90483832359314s
+Accuracy: 73.84615384615384%
+
+[_6_9_11_6_6_7_2_2_6]x512s2047761788
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.51449537277222s
+Accuracy: 73.07692307692308%
+
+[10_2_5_6_6_7_2_2_5]x512s2034398500
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.986412525177s
+Accuracy: 76.15384615384616%
+
+[9_2_3_6_6_7_2_2_5]x512s1694082488
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.088685035705566s
+Accuracy: 70.76923076923077%
+
+[9_2_4_6_6_7_2_2_5]x512s2127646596
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.44367027282715s
+Accuracy: 74.61538461538461%
+
+[10_3_5_6_6_7_2_2_5]x512s787839726
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.06986403465271s
+Accuracy: 81.53846153846153%
+
+[_6_9_11_6_6_7_2_2_5]x512s1545143240
+Epochs: 30	Batch Size: 64
+Process took 3.0m 34.08827996253967s
+Accuracy: 76.92307692307692%
+
+[_6_9_10_6_6_7_2_2_5]x512s1022972430
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.758490562438965s
+Accuracy: 71.53846153846153%
+
+[10_3_5_6_6_7_2_2_5]x512s150996385
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.922136545181274s
+Accuracy: 79.23076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s107812317
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.501641273498535s
+Accuracy: 67.6923076923077%
+
+[9_2_3_6_6_7_2_2_5]x512s1410488894
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.56996417045593s
+Accuracy: 78.46153846153847%
+
+[_6_9_10_6_6_7_2_2_5]x512s1098351598
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.061870098114014s
+Accuracy: 83.84615384615384%
+
+[9_2_4_6_6_7_2_2_5]x512s1356650805
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.94258427619934s
+Accuracy: 79.23076923076923%
+
+[_6_9_11_6_6_8_2_2_5]x512s1560482948
+Epochs: 30	Batch Size: 64
+Process took 3.0m 31.43190622329712s
+Accuracy: 70.0%
+
+[9_2_4_6_6_7_2_2_5]x512s1711647054
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.15927839279175s
+Accuracy: 83.84615384615384%
+
+[9_2_4_6_6_8_2_2_5]x512s966127845
+Epochs: 30	Batch Size: 64
+Process took 3.0m 32.118205308914185s
+Accuracy: 65.38461538461539%
+
+[10_2_5_6_6_7_2_2_5]x512s663862396
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.85201406478882s
+Accuracy: 73.84615384615384%
+
+[9_2_4_6_6_7_2_2_5]x512s825688183
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.40037727355957s
+Accuracy: 79.23076923076923%
+
+[_6_9_10_6_6_7_2_2_5]x512s1434505969
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.227022647857666s
+Accuracy: 79.23076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s1647668872
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.90246653556824s
+Accuracy: 74.61538461538461%
+
+[9_2_4_6_6_7_2_2_5]x512s178058040
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.67833876609802s
+Accuracy: 72.3076923076923%
+
+[_6_9_10_6_6_7_2_2_5]x512s94138350
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.91654324531555s
+Accuracy: 68.46153846153847%
+
+[9_2_4_6_6_6_2_2_5]x512s1582700247
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.23536658287048s
+Accuracy: 70.0%
+
+[9_2_4_6_6_7_2_2_5]x512s182715777
+Epochs: 30	Batch Size: 64
+Process took 3.0m 37.17558836936951s
+Accuracy: 82.3076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s246992787
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.74445676803589s
+Accuracy: 83.07692307692308%
+
+[9_2_4_6_6_7_2_2_6]x512s736144976
+Epochs: 30	Batch Size: 64
+Process took 3.0m 49.32457089424133s
+Accuracy: 75.38461538461539%
+
+[9_2_4_6_6_7_2_2_5]x512s1544447305
+Epochs: 30	Batch Size: 64
+Process took 3.0m 39.43308401107788s
+Accuracy: 73.84615384615384%
+
+[9_2_4_6_6_7_2_2_5]x512s2026049751
+Epochs: 30	Batch Size: 64
+Process took 3.0m 39.733317375183105s
+Accuracy: 70.76923076923077%
+
+[9_2_4_6_6_7_2_2_5]x512s354884502
+Epochs: 30	Batch Size: 64
+Process took 3.0m 38.90272521972656s
+Accuracy: 82.3076923076923%
+
+[9_2_4_6_6_7_2_2_5]x512s593849262
+Epochs: 30	Batch Size: 64
+Process took 3.0m 39.31921982765198s
+Accuracy: 74.61538461538461%
+
+[9_2_4_6_6_7_2_2_5]x512s1771920305
+Epochs: 30	Batch Size: 64
+Process took 3.0m 39.086549520492554s
+Accuracy: 73.07692307692308%
+
+[9_2_4_6_6_7_2_2_5]x512s967309651
+Epochs: 30	Batch Size: 64
+Process took 3.0m 40.44976258277893s
+Accuracy: 76.15384615384616%
+
+[9_2_4_6_6_7_2_2_6]x512s1725939027
+Epochs: 30	Batch Size: 64
+Process took 3.0m 40.80450701713562s
+Accuracy: 81.53846153846153%
+
+[9_3_4_6_6_7_2_2_6]x512s392879588
+Epochs: 30	Batch Size: 64
+Process took 3.0m 36.549256324768066s
+Accuracy: 66.92307692307692%
+
+[_6_9_10_6_6_7_1_2_5]x512s1289999027
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.40523719787598s
+Accuracy: 79.23076923076923%
+
+[9_2_4_6_6_7_1_2_5]x512s791248244
+Epochs: 30	Batch Size: 64
+Process took 3.0m 35.12613081932068s
+Accuracy: 77.6923076923077%
+
+[9_2_4_6_6_7_2_2_5]x512s281014089
+Epochs: 30	Batch Size: 64
+Process took 3.0m 38.12833094596863s
+Accuracy: 71.53846153846153%
+

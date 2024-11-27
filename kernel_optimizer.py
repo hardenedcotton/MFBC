@@ -6,16 +6,16 @@ from train import *
 
 # GA constants
 KERNEL_DIM = 9
-POPULATION_SIZE = 5
+POPULATION_SIZE = 10
 GENERATIONS = 10
-MUTATION_RATE = 0.2
+MUTATION_RATE = 0.25
 ELITISM = 2  # Keep top 2 kernels
 
 # Convolution constants
 DATA_COUNT = 0
 BATCH_SIZE = 64
 NUM_EPOCHS = 30
-SEED = 5
+SEED = None
 
 
 def conv(kernel):
@@ -104,7 +104,8 @@ population = [random_kernel() for _ in range(POPULATION_SIZE)]
 
 for generation in range(GENERATIONS):
     print(f'\nGeneration {generation}\n')
-    fitness = [(kernel, evaluate_kernel(kernel)) for kernel in population]
+    fitness = [(kernel, evaluate_kernel(kernel, idx))
+               for idx, kernel in enumerate(population)]
     fitness.sort(key=lambda x: x[1], reverse=True)
 
     next_population = [f[0] for f in fitness[:ELITISM]]
@@ -127,5 +128,5 @@ print(f"Optimal Kernel: {best_kernel}, Best Accuracy: {best_accuracy}")
 
 print(f'All kernels:\n{all_kernels}')
 
-with open(f'{datetime.date.today().strftime(("%d-%m-%Y"))}.txt', 'w+') as f:
-    f.write(all_kernels)
+with open(f'GA_Kernels/{datetime.date.today().strftime(("%d-%m-%Y"))}.txt', 'w+') as f:
+    f.write(str(all_kernels))
