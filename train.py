@@ -212,7 +212,7 @@ def visualize_feature_maps(feature_maps):
 
 
 class EntropyImageDataset(Dataset):
-    def __init__(self, image_dir, data_count, do_entropy=False, do_var=False, do_convolution=False, resize=None, kernel_size=3, seed=None, transform=None, kernel_override=[]):
+    def __init__(self, image_dir, data_count, do_entropy=False, do_var=False, do_convolution=False, resize=None, kernel_size=3, seed=None, transform=None, kernel_override=None):
         self.image_dir = image_dir
         self.transform = transform
         self.do_entropy = do_entropy
@@ -238,6 +238,7 @@ class EntropyImageDataset(Dataset):
         else:
             self.kernel = random_kernel(
                 kernel_size=self.kernel_size, seed=self.seed)
+
         self.kernel_ext = f'{self.kernel.flatten()}'.replace(
             "  ", "_").replace(" ", "_")
 
@@ -386,8 +387,30 @@ class oldCNNModel(nn.Module):
         x = self.fc2(x)
 
         return x
-# Train / Test Model
 
+
+class singleCNNModel(nn.Module):
+    def __init__(self, num_classes):
+        super(singleCNNModel, self).__init__()
+        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.fc1 = nn.Linear(16 * 256 * 256, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        x = F.relu(self.conv1(x))
+        x = self.pool(x)
+
+        batch_size = x.size(0)
+        x = x.view(batch_size, -1)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+# Train / Test Model
 
 def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
     with Timer() as t:
@@ -442,9 +465,11 @@ def test_model(model, test_loader):
 if __name__ == '__main__':
     image_dir = 'images'
     get_class_counts(image_dir)
-    data_count = 3
-    batch_size = 64
-    seed = None
+
+    DATA_COUNT = 0
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 30
+    SEED = None
 
     transform = transforms.Compose([
         transforms.Resize((512, 512)),
@@ -454,12 +479,12 @@ if __name__ == '__main__':
     ])
 
     dataset = EntropyImageDataset(image_dir=image_dir,
-                                  data_count=data_count,
+                                  data_count=DATA_COUNT,
                                   # do_entropy=True,
                                   do_var=True,
                                   # do_convolution=True,
                                   resize=512,
-                                  seed=seed,
+                                  seed=SEED,
                                   transform=transform)
 
     train_size = int(0.8 * len(dataset))
@@ -470,23 +495,24 @@ if __name__ == '__main__':
     train_dataset, test_dataset = random_split(
         dataset, [train_size, test_size], generator=torch.Generator().manual_seed(dataset.seed))
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size,
-                              num_workers=4, persistent_workers=True, pin_memory=True, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE,
+                              #   num_workers=4, persistent_workers=True,
+                              pin_memory=True, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=test_size,
-                             num_workers=4, persistent_workers=True, pin_memory=True, shuffle=False)
+                             #  num_workers=4, persistent_workers=True,
+                             pin_memory=True, shuffle=False)
 
     model = torch.nn.DataParallel(
-        FullyConnectedModel(num_classes=4).to('cuda'))
+        singleCNNModel(num_classes=4).to('cuda'))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Exec
     torch.cuda.empty_cache()
-    num_epochs = 50
     t = train_model(model, train_loader, criterion,
-                    optimizer, num_epochs=num_epochs)
+                    optimizer, num_epochs=NUM_EPOCHS)
     result = test_model(model, test_loader)
 
     dataset[0]
     last_save_location = dataset.get_last_save_location()
-    result_logger(result, t, num_epochs, batch_size, last_save_location)
+    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, last_save_location)
