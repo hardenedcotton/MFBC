@@ -1,9 +1,8 @@
+import datetime
 import os
 import random
 import time
-from pprint import pprint
 import json
-import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal
 import skimage.measure
@@ -16,9 +15,9 @@ from numpy import cos, exp, sin, sqrt, tanh
 from PIL import Image as im
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms, utils
+
+
 # Functions
-
-
 class Timer:
     def __enter__(self):
         self.start = time.time()
@@ -28,11 +27,11 @@ class Timer:
         self.end = time.time()
         self.elapsed = divmod(self.end-self.start, 60)
         self.mins = int(self.elapsed[0])
-        self.secs = float(f'{self.elapsed[1]:.2f}')
+        self.secs = int(self.elapsed[1])
 
 
 functions = [
-    lambda x: x,  # Placeholder for 0, not used
+    lambda x: x,
     lambda x: sin(x),
     lambda x: cos(x),
     lambda x: sin(3 * x),
@@ -47,20 +46,32 @@ functions = [
     lambda x: 0,
 ]
 
+torch_functions = [
+    lambda x: x,
+    lambda x: torch.sin(x),
+    lambda x: torch.cos(x),
+    lambda x: torch.sin(3 * x),
+    lambda x: torch.cos(3 * x),
+    lambda x: torch.sqrt(torch.clamp(x, min=0)),
+    lambda x: torch.exp(-x),
+    lambda x: torch.sqrt(0.5 * x),
+    lambda x: x ** 2,
+    lambda x: torch.tanh(x),
+    lambda x: torch.exp(-2 * x),
+    lambda x: 1 / (1 + torch.exp(-x)),
+    lambda x: torch.zeros_like(x),
+]
 
-def random_kernel(kernel_size=3, seed=None, dim=2):
-    assert kernel_size % 2 == 1, 'Kernel side length must be an odd number.'
+
+def random_kernel(kernel_size=(3, 3), seed=None):
+    assert kernel_size[-1] % 2 == 1, 'Kernel side length must be an odd number.'
 
     np.random.seed(seed)
-
-    size = np.zeros((kernel_size,)*dim).shape
-
-    kernel = np.random.randint(1, len(functions), size=size)
-
+    kernel = np.random.randint(1, len(functions), size=kernel_size)
     return kernel
 
 
-def convolution(img, kernel, resize=0):
+def elementwise_convolution(img, kernel, resize=0):
     if resize:
         img.thumbnail((resize, resize), im.BILINEAR)
 
@@ -117,11 +128,45 @@ def quick_convolution(img, kernel, resize=0):
     return final_image
 
 
+def convolution_var(img, kernel, resize=0):
+    if resize:
+        img = F.interpolate(img, size=(resize, resize),
+                            mode='bilinear', align_corners=False)
+
+    # Calculate variance and generate kernel
+    variance = img.mean() / (img.std() + 1e-8)  # Avoid division by zero
+    # Assume this generates a 2D kernel
+    kernel_var = kernel_from_constant(kernel, variance)
+    kernel_var = torch.tensor(
+        kernel_var, dtype=torch.float32, device=img.device).unsqueeze(0).unsqueeze(0)
+    # kernel_var now has shape [1, 1, kernel_height, kernel_width]
+
+    # Normalize input and permute to (batch_size, channels, height, width)
+    # From (batch_size, height, width, channels)
+    rgb = img.permute(0, 3, 1, 2).float() / 255.0
+
+    # Prepare output tensor
+    im_new = torch.zeros_like(rgb)
+
+    # Apply convolution for each channel
+    for idx in range(rgb.size(1)):  # Iterate over channels
+        # Extract single channel, keep batch dimension
+        channel = rgb[:, idx:idx + 1, :, :]
+        # Apply 2D convolution
+        result = F.conv2d(channel, kernel_var, padding='same')
+        im_new[:, idx:idx + 1, :, :] = result
+
+    # Scale back to Float range [0, 1]
+    im_new = im_new.clamp(0, 1)
+
+    return im_new  # Keep as Float for downstream operations
+
+
 def kernel_from_constant(kernel, constant):
     kernel_flat = kernel.flatten().astype(int)
     cons_kernel = np.zeros_like(kernel_flat, float)
     for i in range(kernel_flat.shape[0]):
-        cons_kernel[i] = functions[kernel_flat[i]](constant)
+        cons_kernel[i] = torch_functions[kernel_flat[i]](constant)
     cons_kernel = cons_kernel.reshape(kernel.shape)
     return cons_kernel
 
@@ -145,28 +190,26 @@ def str_to_kernel(input_str):
     return np.array(input_list, int).reshape((3, 3))
 
 
-def result_logger(result, time_values, num_epochs, batch_size, path):
-    split_index = path.rfind('/')
-
-    directory_path = path[:split_index]
-    variation = path[split_index + 1:]
-
-    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
-
-    log_path = f'{directory_path}/log.txt'
+def result_logger(result, time_values, num_epochs, batch_size, kernel, path, seed):
+    date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
+    kernel = list(a.flatten()).__str__().replace(" ", "").replace(",", "_")
+    log = f'{date}\n{kernel}\n{seed}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
+    log_path = f'{path}/log.txt'
     with open(log_path, 'a') as file:
         file.write(log + '\n\n')
 
     log_json = {
+        'date': date,
+        'kernel': kernel,
         'epochs': num_epochs,
         'batch_size': batch_size,
-        'time': {
+        'process_time': {
             'mins': time_values[0],
             'secs': time_values[1]},
         'accuracy': result
     }
 
-    json_log_path = f'{directory_path}/log.json'
+    json_log_path = f'{path}/log.json'
     if os.path.exists(json_log_path):
         with open(json_log_path, 'r') as json_file:
             try:
@@ -178,7 +221,7 @@ def result_logger(result, time_values, num_epochs, batch_size, path):
     else:
         logs = {}
 
-    logs[variation] = log_json
+    logs[seed] = log_json
 
     with open(json_log_path, 'w') as json_file:
         json.dump(logs, json_file, indent=2)
@@ -187,37 +230,12 @@ def result_logger(result, time_values, num_epochs, batch_size, path):
     print(f'{log_path}\n{json_log_path}\n')
 
 
-def visualize_feature_maps(feature_maps):
-    num_layers = len(feature_maps)
-
-    fig, axes = plt.subplots(num_layers, 8, figsize=(15, num_layers * 2))
-
-    for layer_idx, feature_map in enumerate(feature_maps):
-        # Number of channels (i.e., filters)
-        num_feature_maps = feature_map.shape[1]
-
-        # Plot first 8 feature maps for the current layer
-        for i in range(8):
-            if i < num_feature_maps:
-                axes[layer_idx, i].imshow(
-                    feature_map[0, i].detach().cpu().numpy(), cmap='gray')
-                axes[layer_idx, i].axis('off')
-            else:
-                axes[layer_idx, i].axis('off')  # Hide unused subplots
-
-    fig.suptitle('Feature Maps from Different Layers', fontsize=16)
-    plt.tight_layout()
-    plt.show()
 # Dataset Creator
-
-
 class EntropyImageDataset(Dataset):
-    def __init__(self, image_dir, data_count, do_entropy=False, do_var=False, do_convolution=False, resize=None, kernel_size=3, seed=None, transform=None, kernel_override=None):
+    def __init__(self, image_dir, data_count, convolution_type='', resize=None, kernel_size=3, seed=None, transform=None):
         self.image_dir = image_dir
         self.transform = transform
-        self.do_entropy = do_entropy
-        self.do_variance = do_var
-        self.do_convolution = do_convolution
+        self.convolution_type = convolution_type
         self.resize = resize
         self.kernel_size = kernel_size
         self.seed = seed
@@ -232,16 +250,6 @@ class EntropyImageDataset(Dataset):
             self.seed = np.random.randint(0, 2**31)
         np.random.seed(self.seed)
         print(f'Current seed: {np.random.get_state()[1][0]}')
-
-        if type(kernel_override) != type(None):
-            self.kernel = kernel_override
-        else:
-            self.kernel = random_kernel(
-                kernel_size=self.kernel_size, seed=self.seed)
-
-        self.kernel_ext = f'{self.kernel.flatten()}'.replace(
-            "  ", "_").replace(" ", "_")
-
         self.image_counter = 0
         if self.__len__() == 0:
             print(
@@ -255,17 +263,6 @@ class EntropyImageDataset(Dataset):
 
         print(f"Selected {self.__len__()} images to be evaluated.")
 
-        if self.do_entropy:
-            print(
-                f'Kernel variation /entropy/{self.kernel_ext}x{resize}s{self.seed} initiated.')
-
-        elif self.do_variance:
-            print(
-                f'Kernel variation /variance/{self.kernel_ext}x{resize}s{self.seed} initiated.')
-        elif self.do_convolution:
-            print(
-                f'Kernel variation /convolution/{self.kernel_ext}x{resize}s{self.seed} initiated.')
-
     def __len__(self):
         return len(self.image_filenames)
 
@@ -274,53 +271,17 @@ class EntropyImageDataset(Dataset):
 
     def save_get_images(self, filename):
         directory_path = os.path.dirname(filename)
-        file_name = os.path.basename(filename)
         image = im.open(filename)
-
-        if self.do_entropy:
-            self.save_location = f'{directory_path}/exports/entropy/{self.kernel_ext}x{self.resize}s{self.seed}'
-            os.makedirs(self.save_location, exist_ok=True)
-            if file_name in os.listdir(self.save_location):
-                final_image = im.open(f'{self.save_location}/{file_name}')
-            else:
-                with Timer() as t:
-                    entropy = skimage.measure.shannon_entropy(image)
-                    kernel = kernel_from_constant(self.kernel, entropy)
-                    final_image = quick_convolution(image, kernel, self.resize)
-                    final_image.save(f'{self.save_location}/{file_name}')
-                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
-        elif self.do_variance:
-            self.save_location = f'{directory_path}/exports/variance/{self.kernel_ext}x{self.resize}s{self.seed}'
-            os.makedirs(self.save_location, exist_ok=True)
-            if file_name in os.listdir(self.save_location):
-                final_image = im.open(f'{self.save_location}/{file_name}')
-            else:
-                with Timer() as t:
-                    image_arr = np.array(image)
-                    variance = image_arr.mean()/image_arr.std()
-                    kernel = kernel_from_constant(self.kernel, variance)
-                    final_image = quick_convolution(image, kernel, self.resize)
-                    final_image.save(f'{self.save_location}/{file_name}')
-                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
-        elif self.do_convolution:
-            self.save_location = f'{directory_path}/exports/convolution/{self.kernel_ext}x{self.resize}s{self.seed}'
-            os.makedirs(self.save_location, exist_ok=True)
-            if file_name in os.listdir(self.save_location):
-                final_image = im.open(f'{self.save_location}/{file_name}')
-            else:
-                with Timer() as t:
-                    final_image = convolution(image, self.kernel, self.resize)
-                    final_image.save(f'{self.save_location}/{file_name}')
-                # print(f'#{file_name} Convolved image in {t.mins}m {t.secs}s')
-        else:
-            final_image = image
-            self.save_location = f'{directory_path}/s{self.seed}'
+        final_image = image
+        self.save_location = f'{directory_path}/s{self.seed}'
         return final_image
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.image_dir, self.image_filenames[idx])
-        image = self.save_get_images(img_name)
+        # image = self.save_get_images(img_name)
 
+        image = im.open(img_name)
+        self.save_location = f'{self.image_dir}/s{self.seed}'
         if self.transform:
             image = self.transform(image)
 
@@ -348,6 +309,30 @@ class FullyConnectedModel(nn.Module):
     def forward(self, x):
         batch_size = x.size(0)  # Batch size
         x = x.view(batch_size, -1)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
+
+
+class Conv4LayerModel(nn.Module):
+    def __init__(self, num_classes, kernel):
+        super(Conv4LayerModel, self).__init__()
+        self.kernel = kernel
+        self.conv = convolution_var
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.fc1 = nn.Linear(3 * 512 * 512, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        batch_size = x.size(0)
+        x = F.relu(self.conv(x, self.kernel[0]))
+        x = F.relu(self.conv(x, self.kernel[1]))
+        x = F.relu(self.conv(x, self.kernel[2]))
+        x = F.relu(self.conv(x, self.kernel[3]))
+
+        x = x.reshape(batch_size, -1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
@@ -437,7 +422,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
 
     t_string = f'Process took {t.mins}m {t.secs}s'
     print(t_string)
-    return t.elapsed
+    return t.mins, t.secs
 
 
 def test_model(model, test_loader):
@@ -462,26 +447,27 @@ def test_model(model, test_loader):
     return result
 
 
-if __name__ == '__main__':
-    image_dir = 'images'
-    get_class_counts(image_dir)
+def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, SEED, kernel):
+    np.set_printoptions(linewidth=np.inf)
+    if not SEED:
+        SEED = np.random.randint(0, 2**31)
+        np.random.seed(SEED)
+        print(f'Current seed: {np.random.get_state()[1][0]}')
 
-    DATA_COUNT = 0
-    BATCH_SIZE = 64
-    NUM_EPOCHS = 30
-    SEED = None
+    image_dir = 'images/source_data'
+    get_class_counts(image_dir)
 
     transform = transforms.Compose([
         transforms.Resize((512, 512)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                             0.229, 0.224, 0.225])
+            0.229, 0.224, 0.225])
     ])
 
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=DATA_COUNT,
                                   # do_entropy=True,
-                                  do_var=True,
+                                  #   do_var=True,
                                   # do_convolution=True,
                                   resize=512,
                                   seed=SEED,
@@ -503,16 +489,30 @@ if __name__ == '__main__':
                              pin_memory=True, shuffle=False)
 
     model = torch.nn.DataParallel(
-        singleCNNModel(num_classes=4).to('cuda'))
+        nn_model(num_classes=4, kernel=kernel).to('cuda'))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Exec
+    # Exec
     torch.cuda.empty_cache()
     t = train_model(model, train_loader, criterion,
                     optimizer, num_epochs=NUM_EPOCHS)
     result = test_model(model, test_loader)
 
-    dataset[0]
-    last_save_location = dataset.get_last_save_location()
-    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, last_save_location)
+    log_path = 'images\\exports\\variance4'
+    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, kernel, log_path, SEED)
+
+
+if __name__ == '__main__':
+    DATA_COUNT = 0
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 30
+    SEED = None
+    kernel = random_kernel((4, 3, 3), seed=SEED)
+    run(nn_model=Conv4LayerModel,
+        DATA_COUNT=DATA_COUNT,
+        BATCH_SIZE=BATCH_SIZE,
+        NUM_EPOCHS=NUM_EPOCHS,
+        SEED=SEED,
+        kernel=kernel,
+        )
