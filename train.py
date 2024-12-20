@@ -129,37 +129,27 @@ def quick_convolution(img, kernel, resize=0):
 
 
 def convolution_var(img, kernel, resize=0):
+    img = torch.asarray(img)
     if resize:
         img = F.interpolate(img, size=(resize, resize),
                             mode='bilinear', align_corners=False)
 
-    # Calculate variance and generate kernel
     variance = img.mean() / (img.std() + 1e-8)  # Avoid division by zero
-    # Assume this generates a 2D kernel
     kernel_var = kernel_from_constant(kernel, variance)
     kernel_var = torch.tensor(
         kernel_var, dtype=torch.float32, device=img.device).unsqueeze(0).unsqueeze(0)
-    # kernel_var now has shape [1, 1, kernel_height, kernel_width]
 
-    # Normalize input and permute to (batch_size, channels, height, width)
-    # From (batch_size, height, width, channels)
-    rgb = img.permute(0, 3, 1, 2).float() / 255.0
-
-    # Prepare output tensor
+    rgb = img.float() / 255.0
     im_new = torch.zeros_like(rgb)
 
-    # Apply convolution for each channel
-    for idx in range(rgb.size(1)):  # Iterate over channels
-        # Extract single channel, keep batch dimension
-        channel = rgb[:, idx:idx + 1, :, :]
-        # Apply 2D convolution
+    for idx in range(rgb.shape[0]):
+        channel = rgb[idx:idx+1, :, :]
         result = F.conv2d(channel, kernel_var, padding='same')
-        im_new[:, idx:idx + 1, :, :] = result
+        im_new[idx:idx+1, :, :] = result
 
-    # Scale back to Float range [0, 1]
-    im_new = im_new.clamp(0, 1)
+    # im_new = im_new.clamp(0, 1)
 
-    return im_new  # Keep as Float for downstream operations
+    return im_new
 
 
 def kernel_from_constant(kernel, constant):
@@ -192,9 +182,12 @@ def str_to_kernel(input_str):
 
 def result_logger(result, time_values, num_epochs, batch_size, kernel, path, seed):
     date = datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S")
-    kernel = list(a.flatten()).__str__().replace(" ", "").replace(",", "_")
+    kernel = list(kernel.flatten()).__str__().replace(
+        " ", "").replace(",", "_")
     log = f'{date}\n{kernel}\n{seed}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
     log_path = f'{path}/log.txt'
+    os.makedirs(path, exist_ok=True)
+
     with open(log_path, 'a') as file:
         file.write(log + '\n\n')
 
@@ -231,13 +224,13 @@ def result_logger(result, time_values, num_epochs, batch_size, kernel, path, see
 
 
 # Dataset Creator
-class EntropyImageDataset(Dataset):
-    def __init__(self, image_dir, data_count, convolution_type='', resize=None, kernel_size=3, seed=None, transform=None):
+class ImageDataset(Dataset):
+    def __init__(self, image_dir, data_count, kernel, layer_count=1, seed=None, transform=None, nn_model=str):
         self.image_dir = image_dir
         self.transform = transform
-        self.convolution_type = convolution_type
-        self.resize = resize
-        self.kernel_size = kernel_size
+        self.kernel = kernel
+        self.layer_count = layer_count
+        self.nn_model_name = nn_model.__name__
         self.seed = seed
         self.image_filenames = [f for f in os.listdir(image_dir) if (
             f.startswith('IMG') and f.endswith('.JPEG'))]
@@ -245,11 +238,12 @@ class EntropyImageDataset(Dataset):
 
         self.image_filenames = [f for f in self.image_filenames if os.path.exists(
             os.path.join(image_dir, f.replace('.JPEG', '.txt')))]
-
+        self.kernel_ext = list(kernel.flatten()).__str__().replace(
+            " ", "").replace(",", "_")
         if not self.seed:
             self.seed = np.random.randint(0, 2**31)
         np.random.seed(self.seed)
-        print(f'Current seed: {np.random.get_state()[1][0]}')
+        # print(f'Current seed: {np.random.get_state()[1][0]}')
         self.image_counter = 0
         if self.__len__() == 0:
             print(
@@ -270,22 +264,37 @@ class EntropyImageDataset(Dataset):
         return self.save_location
 
     def save_get_images(self, filename):
-        directory_path = os.path.dirname(filename)
-        image = im.open(filename)
-        final_image = image
-        self.save_location = f'{directory_path}/s{self.seed}'
+        # directory_path = os.path.dirname(filename)
+        file_name = os.path.basename(filename)
+
+        self.save_location = f'images/exports/{self.nn_model_name}{self.layer_count}/{self.kernel_ext}s{self.seed}'
+        os.makedirs(self.save_location, exist_ok=True)
+
+        if file_name in os.listdir(self.save_location):
+            image = im.open(f'{self.save_location}/{file_name}')
+            if self.transform:
+                image = self.transform(image)
+            final_image = image
+
+        else:
+            image = im.open(filename)
+            if self.transform:
+                image = self.transform(image)
+
+            with Timer() as t:
+                for i in range(self.layer_count):
+                    final_image = F.relu(
+                        convolution_var(image, self.kernel[i]))
+                    transforms.ToPILImage()(final_image * 255).save(
+                        f'{self.save_location}/{file_name}')
         return final_image
 
     def __getitem__(self, idx):
         img_name = os.path.join(self.image_dir, self.image_filenames[idx])
-        # image = self.save_get_images(img_name)
 
-        image = im.open(img_name)
-        self.save_location = f'{self.image_dir}/s{self.seed}'
-        if self.transform:
-            image = self.transform(image)
+        image = self.save_get_images(img_name)
+        # self.save_location = f'{self.image_dir}/s{self.seed}'
 
-        # adjust extension if necessary
         label_name = img_name.replace('.JPEG', '.txt')
 
         try:
@@ -296,9 +305,8 @@ class EntropyImageDataset(Dataset):
             print(f'No label for {img_name}, assuming 0')
             return image, 0
 
+
 # Models
-
-
 class FullyConnectedModel(nn.Module):
     def __init__(self, num_classes):
         super(FullyConnectedModel, self).__init__()
@@ -307,7 +315,7 @@ class FullyConnectedModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
-        batch_size = x.size(0)  # Batch size
+        batch_size = x.size(0)
         x = x.view(batch_size, -1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
@@ -315,23 +323,20 @@ class FullyConnectedModel(nn.Module):
         return x
 
 
-class Conv4LayerModel(nn.Module):
-    def __init__(self, num_classes, kernel):
-        super(Conv4LayerModel, self).__init__()
+class MultiLayerModel(nn.Module):
+    def __init__(self, num_classes, kernel, layer_count=1):
+        super(MultiLayerModel, self).__init__()
+        self.layer_count = layer_count
         self.kernel = kernel
         self.conv = convolution_var
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
         self.fc1 = nn.Linear(3 * 512 * 512, 512)
         self.fc2 = nn.Linear(512, num_classes)
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
         batch_size = x.size(0)
-        x = F.relu(self.conv(x, self.kernel[0]))
-        x = F.relu(self.conv(x, self.kernel[1]))
-        x = F.relu(self.conv(x, self.kernel[2]))
-        x = F.relu(self.conv(x, self.kernel[3]))
-
+        for i in range(self.layer_count):
+            x = F.relu(convolution_var(x, self.kernel[i]))
         x = x.reshape(batch_size, -1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
@@ -339,38 +344,30 @@ class Conv4LayerModel(nn.Module):
         return x
 
 
-# old model
-class oldCNNModel(nn.Module):
-    def __init__(self, num_classes):
-        super(oldCNNModel, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
+class HybridLayerModel(nn.Module):
+    def __init__(self, num_classes, kernel, layer_count=1):
+        super(HybridLayerModel, self).__init__()
+        self.layer_count = layer_count
+        self.kernel = kernel
+        self.conv = convolution_var
+        self.conv1 = nn.Conv2d(3, 9, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        self.fc1 = nn.Linear(256 * 32 * 32, 512)
+        self.fc1 = nn.Linear(9 * 256 * 256, 512)
         self.fc2 = nn.Linear(512, num_classes)
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
+        batch_size = x.size(0)
+        for i in range(self.layer_count):
+            x = F.relu(self.conv(x, self.kernel[i]))
+
         x = F.relu(self.conv1(x))
         x = self.pool(x)
 
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-
-        x = F.relu(self.conv3(x))
-        x = self.pool(x)
-
-        x = F.relu(self.conv4(x))
-        x = self.pool(x)
-
-        x = x.view(-1, 256 * 32 * 32)
-
+        x = x.reshape(batch_size, -1)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
-
         return x
 
 
@@ -396,11 +393,10 @@ class singleCNNModel(nn.Module):
 
 
 # Train / Test Model
-
 def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
     with Timer() as t:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(f'Device is: {device}')
+        print(f'Selected Device: {device}')
         model.to(device)
         torch.cuda.empty_cache()
 
@@ -447,7 +443,8 @@ def test_model(model, test_loader):
     return result
 
 
-def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, SEED, kernel):
+def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel):
+    print(f'images/exports/{nn_model.__name__}{LAYER_COUNT}')
     np.set_printoptions(linewidth=np.inf)
     if not SEED:
         SEED = np.random.randint(0, 2**31)
@@ -460,18 +457,16 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, SEED, kernel):
     transform = transforms.Compose([
         transforms.Resize((512, 512)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-            0.229, 0.224, 0.225])
     ])
 
-    dataset = EntropyImageDataset(image_dir=image_dir,
-                                  data_count=DATA_COUNT,
-                                  # do_entropy=True,
-                                  #   do_var=True,
-                                  # do_convolution=True,
-                                  resize=512,
-                                  seed=SEED,
-                                  transform=transform)
+    dataset = ImageDataset(image_dir=image_dir,
+                           data_count=DATA_COUNT,
+                           kernel=kernel,
+                           layer_count=LAYER_COUNT,
+                           seed=SEED,
+                           transform=transform,
+                           nn_model=nn_model,
+                           )
 
     train_size = int(0.8 * len(dataset))
     test_size = len(dataset) - train_size
@@ -489,7 +484,7 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, SEED, kernel):
                              pin_memory=True, shuffle=False)
 
     model = torch.nn.DataParallel(
-        nn_model(num_classes=4, kernel=kernel).to('cuda'))
+        nn_model(num_classes=4).to('cuda'))
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -499,20 +494,21 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, SEED, kernel):
                     optimizer, num_epochs=NUM_EPOCHS)
     result = test_model(model, test_loader)
 
-    log_path = 'images\\exports\\variance4'
+    log_path = f'images/exports/{nn_model.__name__}{LAYER_COUNT}'
     result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, kernel, log_path, SEED)
 
 
 if __name__ == '__main__':
-    DATA_COUNT = 0
-    BATCH_SIZE = 64
-    NUM_EPOCHS = 30
+    DATA_COUNT = 5
+    BATCH_SIZE = 32
+    NUM_EPOCHS = 10
+    LAYER_COUNT = 2
     SEED = None
-    kernel = random_kernel((4, 3, 3), seed=SEED)
-    run(nn_model=Conv4LayerModel,
+    kernel = random_kernel((LAYER_COUNT, 3, 3), seed=SEED)
+    run(nn_model=FullyConnectedModel,
         DATA_COUNT=DATA_COUNT,
         BATCH_SIZE=BATCH_SIZE,
         NUM_EPOCHS=NUM_EPOCHS,
+        LAYER_COUNT=LAYER_COUNT,
         SEED=SEED,
-        kernel=kernel,
-        )
+        kernel=kernel)

@@ -5,8 +5,8 @@ import datetime
 from train import *
 
 # GA constants
-KERNEL_DIM = 9
-POPULATION_SIZE = 10
+KERNEL_DIM = 3
+POPULATION_SIZE = 5
 GENERATIONS = 10
 MUTATION_RATE = 0.25
 ELITISM = 2  # Keep top 2 kernels
@@ -16,91 +16,55 @@ DATA_COUNT = 0
 BATCH_SIZE = 64
 NUM_EPOCHS = 30
 SEED = None
+LAYER_COUNT = 2
 
 
 def conv(kernel):
-    image_dir = 'images'
-    get_class_counts(image_dir)
+    if kernel is None:
+        kernel = random_kernel((LAYER_COUNT, 3, 3), seed=SEED)
 
-    transform = transforms.Compose([
-        transforms.Resize((512, 512)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-                             0.229, 0.224, 0.225])
-    ])
-
-    dataset = EntropyImageDataset(image_dir=image_dir,
-                                  data_count=DATA_COUNT,
-                                  kernel_override=kernel,
-                                  # do_entropy=True,
-                                  do_var=True,
-                                  # do_convolution=True,
-                                  resize=512,
-                                  seed=SEED,
-                                  transform=transform)
-
-    train_size = int(0.8 * len(dataset))
-    test_size = len(dataset) - train_size
-
-    print(f'Train size: {train_size} \nTest size: {test_size}')
-
-    train_dataset, test_dataset = random_split(
-        dataset, [train_size, test_size], generator=torch.Generator().manual_seed(dataset.seed))
-
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE,
-                              #   num_workers=4, persistent_workers=True,
-                              pin_memory=True, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=test_size,
-                             #  num_workers=4, persistent_workers=True,
-                             pin_memory=True, shuffle=False)
-
-    model = torch.nn.DataParallel(
-        FullyConnectedModel(num_classes=4).to('cuda'))
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-# Exec
-    torch.cuda.empty_cache()
-    t = train_model(model, train_loader, criterion,
-                    optimizer, num_epochs=NUM_EPOCHS)
-    result = test_model(model, test_loader)
-
-    dataset[0]
-    last_save_location = dataset.get_last_save_location()
-    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, last_save_location)
-    return result
+    run(nn_model=FullyConnectedModel,
+        DATA_COUNT=DATA_COUNT,
+        BATCH_SIZE=BATCH_SIZE,
+        NUM_EPOCHS=NUM_EPOCHS,
+        LAYER_COUNT=LAYER_COUNT,
+        SEED=SEED,
+        kernel=kernel)
 
 
 def mutate_kernel(kernel):
-    # Ensure mutation occurs within valid indices
-    kernel = kernel.copy()  # To avoid modifying the original kernel
-    row = random.randint(0, kernel.shape[0] - 1)
-    col = random.randint(0, kernel.shape[1] - 1)
-
-    kernel[row, col] += random.choice([-1, 1])
+    kernel = kernel.copy()
+    kernel = kernel.flatten()
+    idx = random.randint(0, kernel.shape[0] - 1)
+    kernel[idx] += random.choice([-1, 1])
 
     return kernel
 
 
 def crossover_kernel(kernel1, kernel2):
-    crossover_point = random.randint(
-        1, min(kernel1.shape[0], kernel2.shape[0]) - 1)
-    return np.vstack((kernel1[:crossover_point], kernel2[crossover_point:]))
+    k1 = kernel1.flatten()
+    k2 = kernel2.flatten()
+    crossover_point = random.randint(1, k1.shape[0] - 1)
+    new_kernel = np.append(
+        k1[:crossover_point], k2[crossover_point:])
+    new_kernel = new_kernel.reshape(3, 3)
+    return new_kernel
 
 
 def evaluate_kernel(kernel, population_number):
     print(f'Population {population_number}\n')
-    try:
-        result = conv(kernel)
-        return result
-    except:
-        print(f"Error during ML evaluation")
-        return 0.0
+    result = conv(kernel)
+    return result
+    # try:
+    # except e:
+    #     print(f"Error during ML evaluation")
+    #     return 0.0
 
 
 all_kernels = []
 
-population = [random_kernel() for _ in range(POPULATION_SIZE)]
+population = [random_kernel((LAYER_COUNT, 3, 3), seed=SEED)
+              for _ in range(POPULATION_SIZE)]
 
 for generation in range(GENERATIONS):
     print(f'\nGeneration {generation}\n')
