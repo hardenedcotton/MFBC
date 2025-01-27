@@ -499,9 +499,9 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel)
 
 
 if __name__ == '__main__':
-    DATA_COUNT = 5
-    BATCH_SIZE = 32
-    NUM_EPOCHS = 10
+    DATA_COUNT = 0
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 30
     LAYER_COUNT = 2
     SEED = None
     kernel = random_kernel((LAYER_COUNT, 3, 3), seed=SEED)
