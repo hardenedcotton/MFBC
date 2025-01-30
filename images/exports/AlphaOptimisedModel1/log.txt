@@ -1,0 +1,27 @@
+[1_3_2_6_7_7_1_1_11]
+1359543173
+Epochs: 30	Batch Size: 64
+Process took 31m 28s
+Accuracy: 80.0%
+
+29-01-2025_23:42:15
+[11_8_3_7_7_2_4_12_5]
+1195365403
+Epochs: 30	Batch Size: 64
+Process took 14m 10s
+Accuracy: 79.23076923076923%
+
+30-01-2025_00:06:57
+[8_5_1_4_3_11_5_1_6]
+681451823
+Epochs: 30	Batch Size: 64
+Process took 14m 52s
+Accuracy: 77.6923076923077%
+
+30-01-2025_17:41:12
+[6_9_12_12_1_2_10_11_8]
+1711647054
+Epochs: 30	Batch Size: 64
+Process took 14m 31s
+Accuracy: 85.38461538461539%
+

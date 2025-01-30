@@ -152,6 +152,42 @@ def convolution_var(img, kernel, resize=0):
     return im_new
 
 
+def convolution_alpha(img, kernel, torch_functions, resize=0):
+    img = torch.asarray(img)
+    if resize:
+        img = F.interpolate(img, size=(resize, resize),
+                            mode='bilinear', align_corners=False)
+
+    rgb = img.float() / 255.0
+    im_new = torch.zeros_like(rgb)
+
+    for idx in range(rgb.shape[1]):
+        channel = rgb[:, idx:idx+1, :, :]
+
+        variance = channel.mean() / (channel.std() + 1e-8)
+        kernel_a = kernel_alpha(kernel, variance, torch_functions)
+        kernel_a = torch.tensor(
+            kernel_a, dtype=torch.float32, device=img.device).unsqueeze(0).unsqueeze(0)
+
+        result = F.conv2d(
+            channel,
+            kernel_a,
+            padding='same'
+        )
+        im_new[:, idx:idx+1, :, :] = result
+
+    return im_new
+
+
+def kernel_alpha(kernel, variance, torch_functions):
+    kernel_flat = kernel.flatten().astype(int)
+    cons_kernel = np.zeros_like(kernel_flat, float)
+    for i in range(kernel_flat.shape[0]):
+        cons_kernel[i] = torch_functions[kernel_flat[i]](variance)
+    cons_kernel = cons_kernel.reshape(kernel.shape)
+    return cons_kernel[0]
+
+
 def kernel_from_constant(kernel, constant):
     kernel_flat = kernel.flatten().astype(int)
     cons_kernel = np.zeros_like(kernel_flat, float)
@@ -225,13 +261,14 @@ def result_logger(result, time_values, num_epochs, batch_size, kernel, path, see
 
 # Dataset Creator
 class ImageDataset(Dataset):
-    def __init__(self, image_dir, data_count, kernel, layer_count=1, seed=None, transform=None, nn_model=str):
+    def __init__(self, image_dir, data_count, kernel, layer_count=1, seed=None, transform=None, nn_model=str, save_images=True):
         self.image_dir = image_dir
         self.transform = transform
         self.kernel = kernel
         self.layer_count = layer_count
         self.nn_model_name = nn_model.__name__
         self.seed = seed
+        self.save_images = save_images
         self.image_filenames = [f for f in os.listdir(image_dir) if (
             f.startswith('IMG') and f.endswith('.JPEG'))]
         self.save_location = f'/unlisted/{image_dir}'
@@ -270,7 +307,7 @@ class ImageDataset(Dataset):
         self.save_location = f'images/exports/{self.nn_model_name}{self.layer_count}/{self.kernel_ext}s{self.seed}'
         os.makedirs(self.save_location, exist_ok=True)
 
-        if file_name in os.listdir(self.save_location):
+        if file_name in os.listdir(self.save_location) and self.save_images:
             image = im.open(f'{self.save_location}/{file_name}')
             if self.transform:
                 image = self.transform(image)
@@ -320,6 +357,44 @@ class FullyConnectedModel(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
+        return x
+
+
+class AlphaOptimisedModel(nn.Module):
+    def __init__(self, num_classes, kernel):
+        super(AlphaOptimisedModel, self).__init__()
+        self.register_parameter("a", torch.nn.Parameter(torch.tensor(2.0)))
+        self.register_parameter("b", torch.nn.Parameter(torch.tensor(1.0)))
+        self.kernel = kernel
+        self.conv = convolution_alpha
+
+        self.fc1 = nn.Linear(3 * 512 * 512, 512)
+        self.fc2 = nn.Linear(512, num_classes)
+        self.dropout = nn.Dropout(0.5)
+
+    def forward(self, x):
+        self.torch_functions = [
+            lambda x: self.a-self.b * x,
+            lambda x: torch.sin(self.a-self.b * x),
+            lambda x: torch.cos(self.a-self.b * x),
+            lambda x: torch.sin(self.a-self.b * 3 * x),
+            lambda x: torch.cos(self.a-self.b * 3 * x),
+            lambda x: torch.sqrt(torch.clamp(self.a-self.b * x, min=0)),
+            lambda x: torch.exp(self.a-self.b * -x),
+            lambda x: torch.sqrt(self.a-self.b * 0.5 * x),
+            lambda x: self.a-self.b * x ** 2,
+            lambda x: torch.tanh(self.a-self.b * x),
+            lambda x: torch.exp(self.a-self.b * -2 * x),
+            lambda x: 1 / (1 + torch.exp(self.a-self.b * -x)),
+            lambda x: torch.zeros_like(self.a-self.b * x),
+        ]
+        batch_size = x.size(0)
+        x = F.relu(self.conv(x, self.kernel, self.torch_functions))
+        x = x.view(batch_size, -1)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        print(f'{self.a.item()-self.b.item()}')
         return x
 
 
@@ -407,7 +482,13 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
+
+                loss += 1e-2 * (model.module.a ** 2 + model.module.b ** 2)
+
                 loss.backward()
+                # print(
+                #     f"Grad:\n{model.module.a.grad.item()},{model.module.b.grad.item()}")
+
                 optimizer.step()
                 running_loss += loss.item()
 
@@ -443,7 +524,7 @@ def test_model(model, test_loader):
     return result
 
 
-def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel):
+def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel, save_images=True):
     print(f'images/exports/{nn_model.__name__}{LAYER_COUNT}')
     np.set_printoptions(linewidth=np.inf)
     if not SEED:
@@ -466,6 +547,7 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel)
                            seed=SEED,
                            transform=transform,
                            nn_model=nn_model,
+                           save_images=save_images
                            )
 
     train_size = int(0.8 * len(dataset))
@@ -484,11 +566,14 @@ def run(nn_model, DATA_COUNT, BATCH_SIZE, NUM_EPOCHS, LAYER_COUNT, SEED, kernel)
                              pin_memory=True, shuffle=False)
 
     model = torch.nn.DataParallel(
-        nn_model(num_classes=4).to('cuda'))
+        nn_model(num_classes=4, kernel=kernel).to('cuda'))
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # Exec
+    optimizer = optim.Adam([
+        {'params': [model.module.a, model.module.b], 'lr': 0.05},
+        {'params': [p for n, p in model.module.named_parameters()
+                    if (n != 'a' and n != 'b')], 'lr': 0.001}])
+
     torch.cuda.empty_cache()
     t = train_model(model, train_loader, criterion,
                     optimizer, num_epochs=NUM_EPOCHS)
@@ -502,13 +587,14 @@ if __name__ == '__main__':
     DATA_COUNT = 0
     BATCH_SIZE = 64
     NUM_EPOCHS = 30
-    LAYER_COUNT = 2
-    SEED = None
+    LAYER_COUNT = 1
+    SEED = 1711647054
     kernel = random_kernel((LAYER_COUNT, 3, 3), seed=SEED)
-    run(nn_model=FullyConnectedModel,
+    run(nn_model=AlphaOptimisedModel,
         DATA_COUNT=DATA_COUNT,
         BATCH_SIZE=BATCH_SIZE,
         NUM_EPOCHS=NUM_EPOCHS,
         LAYER_COUNT=LAYER_COUNT,
         SEED=SEED,
-        kernel=kernel)
+        kernel=kernel,
+        save_images=False)
