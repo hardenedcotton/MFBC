@@ -373,20 +373,21 @@ class AlphaOptimisedModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
+        alpha = self.a-self.b
         self.torch_functions = [
-            lambda x: self.a-self.b * x,
-            lambda x: torch.sin(self.a-self.b * x),
-            lambda x: torch.cos(self.a-self.b * x),
-            lambda x: torch.sin(self.a-self.b * 3 * x),
-            lambda x: torch.cos(self.a-self.b * 3 * x),
-            lambda x: torch.sqrt(torch.clamp(self.a-self.b * x, min=0)),
-            lambda x: torch.exp(self.a-self.b * -x),
-            lambda x: torch.sqrt(self.a-self.b * 0.5 * x),
-            lambda x: self.a-self.b * x ** 2,
-            lambda x: torch.tanh(self.a-self.b * x),
-            lambda x: torch.exp(self.a-self.b * -2 * x),
-            lambda x: 1 / (1 + torch.exp(self.a-self.b * -x)),
-            lambda x: torch.zeros_like(self.a-self.b * x),
+            lambda x: alpha * x,  # 0
+            lambda x: torch.sin(alpha * x),  # 1
+            lambda x: torch.cos(alpha * x),  # 2
+            lambda x: torch.sin(alpha * 3 * x),  # 3
+            lambda x: torch.cos(alpha * 3 * x),  # 4
+            lambda x: torch.sqrt(torch.clamp(alpha * x, min=0)),  # 5
+            lambda x: torch.exp(alpha * -x),  # 6
+            lambda x: torch.sqrt(alpha * 0.5 * x),  # 7
+            lambda x: alpha * x ** 2,  # 8
+            lambda x: torch.tanh(alpha * x),  # 9
+            lambda x: torch.exp(alpha * -2 * x),  # 10
+            lambda x: 1 / (1 + torch.exp(alpha * -x)),  # 11
+            lambda x: torch.zeros_like(alpha * x),  # 12
         ]
         batch_size = x.size(0)
         x = F.relu(self.conv(x, self.kernel, self.torch_functions))
