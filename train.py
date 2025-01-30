@@ -373,7 +373,8 @@ class AlphaOptimisedModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
-        alpha = self.a-self.b
+        alpha = self.a
+
         self.torch_functions = [
             lambda x: alpha * x,  # 0
             lambda x: torch.sin(alpha * x),  # 1
@@ -395,6 +396,7 @@ class AlphaOptimisedModel(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
+
         print(f'{self.a.item()-self.b.item()}')
         return x
 
@@ -469,7 +471,7 @@ class singleCNNModel(nn.Module):
 
 
 # Train / Test Model
-def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
+def train_model(model, train_loader, criterion, optimizer, lr=1e-2, num_epochs=25):
     with Timer() as t:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(f'Selected Device: {device}')
@@ -484,7 +486,10 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
 
-                loss += 1e-2 * (model.module.a ** 2 + model.module.b ** 2)
+                # loss += 1e-2 * (model.module.a ** 2 + model.module.b ** 2)
+                alpha = model.module.a-lr*loss
+                model.module.a = torch.nn.Parameter(
+                    torch.tensor([alpha], device=device))
 
                 loss.backward()
                 # print(
@@ -504,6 +509,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
 
 
 def test_model(model, test_loader):
+    print('Starting the Test')
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model.to(device)
     model.eval()

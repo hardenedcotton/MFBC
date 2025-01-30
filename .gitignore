@@ -2,6 +2,7 @@ MFBC.code-workspace
 conv_v1.ipynb
 functions.ipynb
 Main.ipynb
+OPTIMIZATION.ipynb
 x.py
 /images/**
 !/images/**/
