@@ -76,38 +76,39 @@ def random_kernel(kernel_size=(3, 3), seed=None):
 def elementwise_convolution(img, kernel, resize=0):
     if resize:
         img.thumbnail((resize, resize), im.BILINEAR)
-
+    img = img.cpu()
     img = np.array(img)
-    rgb = np.transpose(img, (2, 0, 1))/255
+    batch = img/255
 
-    im_new = np.zeros(img.shape, 'uint8')
-
-    kernel_size = kernel.shape[0]
+    kernel_size = kernel.shape[1]
     pad_size = kernel_size // 2
 
     kernel_flat = kernel.flatten().astype(int)
     kernel_results = np.zeros_like(kernel_flat)
 
     func_list = [functions[i] for i in kernel_flat]
+    for s, b in enumerate(batch):
+        stack = np.zeros_like(batch)
+        im_new = np.zeros(b.shape, 'uint8')
+        for idx, channel in enumerate(b):
+            padded = np.pad(channel, pad_size, mode='edge')
+            padded_h, padded_w = padded.shape
+            for h in range(padded_h-kernel_size+1):
+                for w in range(padded_w-kernel_size+1):
 
-    for idx, channel in enumerate(rgb):
-        padded = np.pad(channel, pad_size, mode='edge')
-        padded_h, padded_w = padded.shape
-        for h in range(padded_h-kernel_size+1):
-            for w in range(padded_w-kernel_size+1):
+                    window = padded[h:h+kernel_size, w:w+kernel_size].flatten()
+                    kernel_results = []
 
-                window = padded[h:h+kernel_size, w:w+kernel_size].flatten()
-                kernel_results = []
+                    for i in range(len(kernel_flat)):
+                        kernel_results.append(func_list[i](window[i]))
+                    kernel_results = np.array(kernel_results)
 
-                for i in range(len(kernel_flat)):
-                    kernel_results.append(func_list[i](window[i]))
-                kernel_results = np.array(kernel_results)
-
-                result = (kernel_results.mean() *
-                          255).clip(0, 255).astype('uint8')
-                im_new[h, w, idx] = result
-    final_image = im.fromarray(im_new)
-    return final_image
+                    result = (kernel_results.mean() *
+                              255).clip(0, 255).astype('uint8')
+                    im_new[idx, h, w] = result
+            stack[s] = torch.tensor(im_new)
+    # final_image = im.fromarray(im_new)
+    return stack
 
 
 def quick_convolution(img, kernel, resize=0):
