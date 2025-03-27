@@ -39,3 +39,10 @@ Epochs: 30	Batch Size: 64
 Process took 14m 14s
 Accuracy: 83.84615384615384%
 
+18-03-2025_17:18:31
+[6_9_12_12_1_2_10_11_8]
+1711647054
+Epochs: 30	Batch Size: 64
+Process took 14m 10s
+Accuracy: 83.07692307692308%
+

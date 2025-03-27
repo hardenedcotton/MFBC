@@ -1,8 +1,9 @@
 import datetime
+import json
 import os
 import random
 import time
-import json
+
 import numpy as np
 import scipy.signal
 import skimage.measure
@@ -13,6 +14,7 @@ import torch.optim as optim
 import torchvision
 from numpy import cos, exp, sin, sqrt, tanh
 from PIL import Image as im
+from sklearn.metrics import f1_score, precision_score, recall_score
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms, utils
 
@@ -373,7 +375,7 @@ class AlphaOptimisedModel(nn.Module):
         self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
-        alpha = self.a
+        alpha = self.a - self.b
 
         self.torch_functions = [
             lambda x: alpha * x,  # 0
@@ -480,29 +482,40 @@ def train_model(model, train_loader, criterion, optimizer, lr=1e-2, num_epochs=2
 
         for epoch in range(num_epochs):
             running_loss = 0.0
+            all_preds = []
+            all_labels = []
+
             for inputs, labels in train_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                loss = criterion(outputs, labels)
 
-                # loss += 1e-2 * (model.module.a ** 2 + model.module.b ** 2)
-                alpha = model.module.a-lr*loss
-                model.module.a = torch.nn.Parameter(
-                    torch.tensor([alpha], device=device))
+                loss = criterion(outputs, labels)
+                print((model.module.a ** 2 + model.module.b ** 2))
+                loss += 1e-2 * (model.module.a ** 2 + model.module.b ** 2)
+                # alpha = model.module.a - lr * loss
+                # model.module.a = torch.nn.Parameter(
+                #     torch.tensor([alpha], device=device))
 
                 loss.backward()
-                # print(
-                #     f"Grad:\n{model.module.a.grad.item()},{model.module.b.grad.item()}")
-
                 optimizer.step()
                 running_loss += loss.item()
 
+                preds = torch.argmax(outputs, dim=1).cpu().numpy()
+                labels_np = labels.cpu().numpy()
+
+                all_preds.extend(preds)
+                all_labels.extend(labels_np)
+            precision = precision_score(all_labels, all_preds, average="macro")
+            recall = recall_score(all_labels, all_preds, average="macro")
+            f1 = f1_score(all_labels, all_preds, average="macro")
+
             print(
-                f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}')
+                f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}, '
+                f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1-score: {f1:.4f}'
+            )
 
     print('Finished Training')
-
     t_string = f'Process took {t.mins}m {t.secs}s'
     print(t_string)
     return t.mins, t.secs
