@@ -1,0 +1,5 @@
+[_6_9_12_12_1_2_10_11_8]x512s1711647054
+Epochs: 30	Batch Size: 64
+Process took 506m 20.49s
+Accuracy: 86.92307692307692%
+Loss: 0.03296413065658675, Precision: 0.9900, Recall: 0.9941, F1-score: 0.9920

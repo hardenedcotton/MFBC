@@ -1,9 +1,9 @@
+import datetime
+import json
 import os
 import random
 import time
-from pprint import pprint
-import json
-import matplotlib.pyplot as plt
+
 import numpy as np
 import scipy.signal
 import skimage.measure
@@ -14,6 +14,7 @@ import torch.optim as optim
 import torchvision
 from numpy import cos, exp, sin, sqrt, tanh
 from PIL import Image as im
+from sklearn.metrics import f1_score, precision_score, recall_score
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms, utils
 # Functions
@@ -412,15 +413,18 @@ class singleCNNModel(nn.Module):
 
 # Train / Test Model
 
-def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
+def train_model(model, train_loader, criterion, optimizer, lr=1e-2, num_epochs=25):
     with Timer() as t:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(f'Device is: {device}')
+        print(f'Selected Device: {device}')
         model.to(device)
         torch.cuda.empty_cache()
 
         for epoch in range(num_epochs):
             running_loss = 0.0
+            all_preds = []
+            all_labels = []
+
             for inputs, labels in train_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
@@ -430,14 +434,24 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=25):
                 optimizer.step()
                 running_loss += loss.item()
 
+                preds = torch.argmax(outputs, dim=1).cpu().numpy()
+                labels_np = labels.cpu().numpy()
+
+                all_preds.extend(preds)
+                all_labels.extend(labels_np)
+            precision = precision_score(all_labels, all_preds, average="macro")
+            recall = recall_score(all_labels, all_preds, average="macro")
+            f1 = f1_score(all_labels, all_preds, average="macro")
+
             print(
-                f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}')
+                f'Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(train_loader)}, '
+                f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1-score: {f1:.4f}'
+            )
 
     print('Finished Training')
-
     t_string = f'Process took {t.mins}m {t.secs}s'
     print(t_string)
-    return t.elapsed
+    return t.mins, t.secs
 
 
 def test_model(model, test_loader):
@@ -463,13 +477,13 @@ def test_model(model, test_loader):
 
 
 if __name__ == '__main__':
-    image_dir = 'images'
+    image_dir = 'images\source_data'
     get_class_counts(image_dir)
 
     DATA_COUNT = 0
     BATCH_SIZE = 64
     NUM_EPOCHS = 30
-    SEED = None
+    SEED = 1711647054
 
     transform = transforms.Compose([
         transforms.Resize((512, 512)),
@@ -481,8 +495,8 @@ if __name__ == '__main__':
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=DATA_COUNT,
                                   # do_entropy=True,
-                                  do_var=True,
-                                  # do_convolution=True,
+                                  #   do_var=True,
+                                  do_convolution=True,
                                   resize=512,
                                   seed=SEED,
                                   transform=transform)
