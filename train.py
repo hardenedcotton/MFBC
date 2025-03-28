@@ -4,6 +4,7 @@ import os
 import random
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal
 import skimage.measure
@@ -33,19 +34,19 @@ class Timer:
 
 
 functions = [
-    lambda x: x,  # Placeholder for 0, not used
-    lambda x: sin(x),
-    lambda x: cos(x),
-    lambda x: sin(3 * x),
-    lambda x: cos(3 * x),
-    lambda x: sqrt(max(0, x)),
-    lambda x: exp(-x),
-    lambda x: sqrt(0.5 * x),
-    lambda x: x ** 2,
-    lambda x: tanh(x),
-    lambda x: exp(-2 * x),
-    lambda x: 1 / (1 + exp(-x)),
-    lambda x: 0,
+    lambda x: x,  # 0: Placeholder for 0, not used
+    lambda x: sin(x),  # 1
+    lambda x: cos(x),  # 2
+    lambda x: sin(3 * x),  # 3
+    lambda x: cos(3 * x),  # 4
+    lambda x: sqrt(max(0, x)),  # 5
+    lambda x: exp(-x),  # 6
+    lambda x: sqrt(0.5 * x),  # 7
+    lambda x: x ** 2,  # 8
+    lambda x: tanh(x),  # 9
+    lambda x: exp(-2 * x),  # 10
+    lambda x: 1 / (1 + exp(-x)),  # 11
+    lambda x: 0,  # 12
 ]
 
 
@@ -494,9 +495,9 @@ if __name__ == '__main__':
 
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=DATA_COUNT,
-                                  # do_entropy=True,
+                                  do_entropy=True,
                                   #   do_var=True,
-                                  do_convolution=True,
+                                  #   do_convolution=True,
                                   resize=512,
                                   seed=SEED,
                                   transform=transform)

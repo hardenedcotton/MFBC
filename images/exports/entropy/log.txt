@@ -28,3 +28,9 @@ Epochs: 50	Batch Size: 64
 Process took 24m 23.32s
 Accuracy: 80.0%
 
+[_6_9_12_12_1_2_10_11_8]x512s1711647054
+Epochs: 30	Batch Size: 64
+Process took 7m 15.83s
+Accuracy: 68.46153846153847%
+Loss: 0.4976131319999695, Precision: 0.7448, Recall: 0.7008, F1-score: 0.7125
+
