@@ -153,7 +153,7 @@ def result_logger(accuracy, precision, recall, f1, time_values, num_epochs, batc
     directory_path = path[:split_index]
     variation = path[split_index + 1:]
 
-    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {result}%'
+    log = f'{variation}\nEpochs: {num_epochs}\tBatch Size: {batch_size}\nProcess took {time_values[0]}m {time_values[1]}s\nAccuracy: {accuracy}%'
 
     log_path = f'{directory_path}/log.txt'
     with open(log_path, 'a') as file:
