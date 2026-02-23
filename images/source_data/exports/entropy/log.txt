@@ -1,0 +1,5 @@
+[_6_9_12_12_1_2_10_11_8]x512s1711647054
+Epochs: 30	Batch Size: 64
+Process took 8m 23.76s
+Accuracy: 78.46153846153847%
+

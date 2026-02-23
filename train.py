@@ -147,7 +147,7 @@ def str_to_kernel(input_str):
     return np.array(input_list, int).reshape((3, 3))
 
 
-def result_logger(result, time_values, num_epochs, batch_size, path):
+def result_logger(accuracy, precision, recall, f1, time_values, num_epochs, batch_size, path):
     split_index = path.rfind('/')
 
     directory_path = path[:split_index]
@@ -165,7 +165,10 @@ def result_logger(result, time_values, num_epochs, batch_size, path):
         'time': {
             'mins': time_values[0],
             'secs': time_values[1]},
-        'accuracy': result
+        'accuracy': accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1-score": f1
     }
 
     json_log_path = f'{directory_path}/log.json'
@@ -462,6 +465,8 @@ def test_model(model, test_loader):
 
     correct = 0
     total = 0
+    all_preds = []
+    all_labels = []
 
     with torch.no_grad():
         for inputs, labels in test_loader:
@@ -471,10 +476,17 @@ def test_model(model, test_loader):
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
-    result = 100 * correct / total
-    result_string = f'Accuracy: {result}%'
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    accuracy = 100 * correct / total
+    precision = precision_score(all_labels, all_preds, average="macro")
+    recall = recall_score(all_labels, all_preds, average="macro")
+    f1 = f1_score(all_labels, all_preds, average="macro")
+
+    result_string = f'\nTEST RESULT\nAccuracy: {accuracy}%,\nPrecision: {precision:.4f}\nRecall: {recall:.4f},\nF1-score: {f1:.4f}'
     print(result_string)
-    return result
+    return accuracy, precision, recall, f1
 
 
 if __name__ == '__main__':
@@ -495,9 +507,9 @@ if __name__ == '__main__':
 
     dataset = EntropyImageDataset(image_dir=image_dir,
                                   data_count=DATA_COUNT,
-                                  do_entropy=True,
-                                  #   do_var=True,
-                                  #   do_convolution=True,
+                                  #   do_entropy=True,
+                                  do_var=True,
+                                  # do_convolution=True,
                                   resize=512,
                                   seed=SEED,
                                   transform=transform)
@@ -526,8 +538,9 @@ if __name__ == '__main__':
     torch.cuda.empty_cache()
     t = train_model(model, train_loader, criterion,
                     optimizer, num_epochs=NUM_EPOCHS)
-    result = test_model(model, test_loader)
+    accuracy, precision, recall, f1 = test_model(model, test_loader)
 
     dataset[0]
     last_save_location = dataset.get_last_save_location()
-    result_logger(result, t, NUM_EPOCHS, BATCH_SIZE, last_save_location)
+    result_logger(accuracy, precision, recall, f1, t,
+                  NUM_EPOCHS, BATCH_SIZE, last_save_location)
